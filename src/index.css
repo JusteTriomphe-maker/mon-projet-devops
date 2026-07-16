@@ -522,6 +522,33 @@ select.form-input option {
   font-size: 14px;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn--google {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border);
+  gap: 10px;
+}
+.btn--google:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
 /* ============================================================
    DASHBOARD
    ============================================================ */

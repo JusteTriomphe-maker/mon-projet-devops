@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { TargetIcon, MailIcon, LockIcon } from '../components/Icons';
+import { TargetIcon, MailIcon, LockIcon, GoogleIcon } from '../components/Icons';
 
 interface LoginPageProps {
   onSwitchToRegister: () => void;
 }
 
 export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -82,6 +82,28 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
             disabled={loading}
           >
             {loading ? 'Connexion...' : 'Se connecter'}
+          </button>
+
+          <div className="auth-divider">
+            <span>ou</span>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn--google btn--full"
+            onClick={async () => {
+              setError('');
+              setLoading(true);
+              const err = await loginWithGoogle();
+              if (err) {
+                setError(err);
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            <GoogleIcon size={20} />
+            Se connecter avec Google
           </button>
         </form>
 

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { TargetIcon, MailIcon, LockIcon, UserIcon } from '../components/Icons';
+import { TargetIcon, MailIcon, LockIcon, UserIcon, GoogleIcon } from '../components/Icons';
 
 interface RegisterPageProps {
   onSwitchToLogin: () => void;
 }
 
 export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -126,6 +126,28 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
             disabled={loading}
           >
             {loading ? 'Création...' : 'Créer mon compte'}
+          </button>
+
+          <div className="auth-divider">
+            <span>ou</span>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn--google btn--full"
+            onClick={async () => {
+              setError('');
+              setLoading(true);
+              const err = await loginWithGoogle();
+              if (err) {
+                setError(err);
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            <GoogleIcon size={20} />
+            Continuer avec Google
           </button>
         </form>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { goalsService } from './services/supabase';
+import { goalsService } from './services/goals';
 import { Header } from './components/Header';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -58,19 +58,22 @@ function AuthenticatedApp() {
   }, [user, loadGoals]);
 
   const handleUpdate = useCallback(async (id: string, input: GoalInput) => {
-    await goalsService.update(id, input);
+    if (!user) return;
+    await goalsService.update(user.id, id, input);
     await loadGoals();
-  }, [loadGoals]);
+  }, [user, loadGoals]);
 
   const handleToggleComplete = useCallback(async (id: string) => {
-    await goalsService.toggleComplete(id);
+    if (!user) return;
+    await goalsService.toggleComplete(user.id, id);
     await loadGoals();
-  }, [loadGoals]);
+  }, [user, loadGoals]);
 
   const handleDelete = useCallback(async (id: string) => {
-    await goalsService.remove(id);
+    if (!user) return;
+    await goalsService.remove(user.id, id);
     await loadGoals();
-  }, [loadGoals]);
+  }, [user, loadGoals]);
 
   return (
     <div className="app">
