@@ -10,6 +10,7 @@ interface AuthContextValue {
   register: (email: string, password: string, name: string) => Promise<string | null>;
   loginWithGoogle: () => Promise<string | null>;
   logout: () => Promise<void>;
+  updateName: (name: string) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -47,13 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
+  const updateName = useCallback(async (name: string): Promise<string | null> => {
+    const err = await authService.updateName(name);
+    if (!err) setUser((u) => u ? { ...u, name } : u);
+    return err;
+  }, []);
+
   const logout = useCallback(async () => {
     await authService.logout();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout, updateName }}>
       {children}
     </AuthContext.Provider>
   );

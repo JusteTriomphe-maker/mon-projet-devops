@@ -3,7 +3,8 @@ import type { Goal, GoalInput, Filters } from '../types';
 import { GoalCard } from '../components/GoalCard';
 import { GoalForm } from '../components/GoalForm';
 import { Modal } from '../components/Modal';
-import { PlusIcon, FilterIcon, SortIcon } from '../components/Icons';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PlusIcon, FilterIcon, SortIcon, SearchIcon } from '../components/Icons';
 
 interface GoalsPageProps {
   goals: Goal[];
@@ -18,6 +19,8 @@ const priorityOrder: Record<string, number> = { Haute: 0, Moyenne: 1, Basse: 2 }
 export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelete }: GoalsPageProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Filters>({
     category: 'Toutes',
     status: 'Toutes',
@@ -29,12 +32,14 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
   const filteredGoals = useMemo(() => {
     let result = [...goals];
 
-    if (filters.category !== 'Toutes') {
-      result = result.filter((g) => g.category === filters.category);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (g) => g.title.toLowerCase().includes(q) || g.description.toLowerCase().includes(q)
+      );
     }
-    if (filters.status !== 'Toutes') {
-      result = result.filter((g) => g.status === filters.status);
-    }
+    if (filters.category !== 'Toutes') result = result.filter((g) => g.category === filters.category);
+    if (filters.status !== 'Toutes') result = result.filter((g) => g.status === filters.status);
 
     result.sort((a, b) => {
       let cmp = 0;
@@ -49,7 +54,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
     });
 
     return result;
-  }, [goals, filters]);
+  }, [goals, filters, search]);
 
   const handleCreate = useCallback(async (input: GoalInput) => {
     await onCreate(input);
@@ -62,12 +67,20 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
     setEditingGoal(null);
   }, [editingGoal, onUpdate]);
 
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deletingId) return;
+    await onDelete(deletingId);
+    setDeletingId(null);
+  }, [deletingId, onDelete]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.category !== 'Toutes') count++;
     if (filters.status !== 'Toutes') count++;
     return count;
   }, [filters]);
+
+  const deletingGoal = goals.find((g) => g.id === deletingId);
 
   return (
     <div className="goals-page">
@@ -83,14 +96,25 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
           >
             <FilterIcon size={16} />
             Filtres
-            {activeFilterCount > 0 && (
-              <span className="badge-count">{activeFilterCount}</span>
-            )}
+            {activeFilterCount > 0 && <span className="badge-count">{activeFilterCount}</span>}
           </button>
           <button className="btn btn--primary" onClick={() => setShowCreate(true)}>
             <PlusIcon size={18} />
             Nouvel objectif
           </button>
+        </div>
+      </div>
+
+      <div className="goals-page__search">
+        <div className="form-input-wrapper">
+          <SearchIcon size={18} className="form-input-icon" />
+          <input
+            type="text"
+            className="form-input form-input--icon"
+            placeholder="Rechercher un objectif..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
@@ -102,9 +126,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
             <select
               className="form-input form-input--sm"
               value={filters.sortField}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, sortField: e.target.value as Filters['sortField'] }))
-              }
+              onChange={(e) => setFilters((f) => ({ ...f, sortField: e.target.value as Filters['sortField'] }))}
             >
               <option value="deadline">Date limite</option>
               <option value="priority">Priorité</option>
@@ -112,12 +134,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
             </select>
             <button
               className="btn btn--ghost btn--sm"
-              onClick={() =>
-                setFilters((f) => ({
-                  ...f,
-                  sortOrder: f.sortOrder === 'asc' ? 'desc' : 'asc',
-                }))
-              }
+              onClick={() => setFilters((f) => ({ ...f, sortOrder: f.sortOrder === 'asc' ? 'desc' : 'asc' }))}
             >
               {filters.sortOrder === 'asc' ? '↑ Croissant' : '↓ Décroissant'}
             </button>
@@ -127,9 +144,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
             <select
               className="form-input form-input--sm"
               value={filters.category}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, category: e.target.value as Filters['category'] }))
-              }
+              onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value as Filters['category'] }))}
             >
               <option value="Toutes">Toutes</option>
               <option value="Dev">Dev</option>
@@ -142,9 +157,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
             <select
               className="form-input form-input--sm"
               value={filters.status}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, status: e.target.value as Filters['status'] }))
-              }
+              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as Filters['status'] }))}
             >
               <option value="Toutes">Tous</option>
               <option value="En cours">En cours</option>
@@ -154,14 +167,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
           {activeFilterCount > 0 && (
             <button
               className="btn btn--ghost btn--sm"
-              onClick={() =>
-                setFilters({
-                  category: 'Toutes',
-                  status: 'Toutes',
-                  sortField: 'deadline',
-                  sortOrder: 'asc',
-                })
-              }
+              onClick={() => setFilters({ category: 'Toutes', status: 'Toutes', sortField: 'deadline', sortOrder: 'asc' })}
             >
               Réinitialiser
             </button>
@@ -176,7 +182,7 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
           <p>
             {goals.length === 0
               ? 'Créez votre premier objectif pour commencer.'
-              : 'Modifiez vos filtres pour voir des résultats.'}
+              : 'Modifiez vos filtres ou votre recherche.'}
           </p>
           {goals.length === 0 && (
             <button className="btn btn--primary" onClick={() => setShowCreate(true)}>
@@ -192,37 +198,30 @@ export function GoalsPage({ goals, onCreate, onUpdate, onToggleComplete, onDelet
               key={goal.id}
               goal={goal}
               onToggleComplete={onToggleComplete}
-              onDelete={onDelete}
+              onDelete={setDeletingId}
               onEdit={setEditingGoal}
             />
           ))}
         </div>
       )}
 
-      <Modal
-        isOpen={showCreate}
-        onClose={() => setShowCreate(false)}
-        title="Nouvel objectif"
-      >
-        <GoalForm
-          onSubmit={handleCreate}
-          onCancel={() => setShowCreate(false)}
-        />
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Nouvel objectif">
+        <GoalForm onSubmit={handleCreate} onCancel={() => setShowCreate(false)} />
       </Modal>
 
-      <Modal
-        isOpen={!!editingGoal}
-        onClose={() => setEditingGoal(null)}
-        title="Modifier l'objectif"
-      >
+      <Modal isOpen={!!editingGoal} onClose={() => setEditingGoal(null)} title="Modifier l'objectif">
         {editingGoal && (
-          <GoalForm
-            goal={editingGoal}
-            onSubmit={handleUpdate}
-            onCancel={() => setEditingGoal(null)}
-          />
+          <GoalForm goal={editingGoal} onSubmit={handleUpdate} onCancel={() => setEditingGoal(null)} />
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deletingId}
+        title="Supprimer l'objectif"
+        message={`Voulez-vous vraiment supprimer "${deletingGoal?.title}" ? Cette action est irréversible.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingId(null)}
+      />
     </div>
   );
 }

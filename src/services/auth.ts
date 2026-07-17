@@ -64,6 +64,16 @@ export const authService = {
     await signOut(auth);
   },
 
+  async updateName(name: string): Promise<string | null> {
+    try {
+      if (!auth.currentUser) return 'Non authentifié.';
+      await updateProfile(auth.currentUser, { displayName: name });
+      return null;
+    } catch (err: unknown) {
+      return err instanceof Error ? err.message : 'Mise à jour échouée.';
+    }
+  },
+
   onAuthChange(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, (firebaseUser) => {
       callback(firebaseUser ? mapFirebaseUser(firebaseUser) : null);
